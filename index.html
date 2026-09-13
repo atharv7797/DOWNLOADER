@@ -470,32 +470,16 @@
   }
 
   async function fetchVideoInfo(videoId, originalUrl) {
-    // Public oEmbed endpoint — this only returns title/author/thumbnail
-    // metadata that YouTube exposes for embedding purposes. It does not
-    // fetch or expose any actual video/audio stream.
-    const oembedUrl = "https://www.youtube.com/oembed?url=" +
-      encodeURIComponent(originalUrl) + "&format=json";
+  const response = await fetch(
+    `https://downloader-lqej.onrender.com/api/info?url=${encodeURIComponent(originalUrl)}`
+  );
 
-    try {
-      const res = await fetch(oembedUrl);
-      if (!res.ok) throw new Error("oEmbed request failed");
-      const data = await res.json();
-      return {
-        title: data.title || "Untitled video",
-        author: data.author_name || "Unknown channel",
-        thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
-      };
-    } catch (err) {
-      // CORS or network restrictions can block the request from a static
-      // page — fall back to the public thumbnail endpoint only.
-      return {
-        title: "Video ready",
-        author: "Title unavailable — connect a backend to fetch metadata server-side",
-        thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
-      };
-    }
+  if (!response.ok) {
+    throw new Error("Failed to fetch video information");
   }
 
+  return await response.json();
+}
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const raw = urlInput.value;
