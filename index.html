@@ -548,24 +548,6 @@ async function fetchVideoInfo(videoId, originalUrl) {
     requestDownload(currentVideoId, selectedQuality);
   });
 
-  // ---------------------------------------------------------------------
-  // Hook point for a real backend.
-  //
-  // Actually extracting a media stream from YouTube has to happen
-  // server-side (e.g. yt-dlp + ffmpeg behind your own API), since a
-  // browser can't legally or technically pull it directly. Point this
-  // function at your endpoint, something like:
-  //
-  //   const res = await fetch(`/api/download?id=${videoId}&quality=${quality}`);
-  //   const blob = await res.blob();
-  //   const a = document.createElement("a");
-  //   a.href = URL.createObjectURL(blob);
-  //   a.download = `${videoId}-${quality}.mp4`;
-  //   a.click();
-  //
-  // Until that's wired up, this simulates the download flow so the UI
-  // can be reviewed end-to-end.
-  // ---------------------------------------------------------------------
 async function requestDownload(videoId, quality) {
   if (!videoId || !quality) return;
 
