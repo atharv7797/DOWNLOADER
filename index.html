@@ -566,35 +566,82 @@ async function fetchVideoInfo(videoId, originalUrl) {
   // Until that's wired up, this simulates the download flow so the UI
   // can be reviewed end-to-end.
   // ---------------------------------------------------------------------
-  function requestDownload(videoId, quality) {
-    downloadBtn.disabled = true;
-    progress.classList.add("is-visible");
-    downloadNote.classList.remove("is-visible");
-    progressBar.style.width = "0%";
+async function requestDownload(videoId, quality) {
+  if (!videoId || !quality) return;
 
-    let pct = 0;
-    const timer = setInterval(() => {
-      pct += Math.random() * 18;
-      if (pct >= 100) {
-        pct = 100;
-        clearInterval(timer);
-        progressBar.style.width = "100%";
-        setTimeout(() => {
-          progress.classList.remove("is-visible");
-          downloadBtn.disabled = false;
-          downloadNote.innerHTML =
-            "<strong>No backend connected yet.</strong> This demo shows the flow only — " +
-            "wire <code>requestDownload()</code> up to a server endpoint that extracts the " +
-            quality + " file for <code>" + videoId + "</code> to enable real downloads.";
-          downloadNote.classList.add("is-visible");
-        }, 250);
-      } else {
-        progressBar.style.width = pct + "%";
-      }
-    }, 180);
+  downloadBtn.disabled = true;
+  downloadBtn.textContent = "Preparing…";
+  progress.classList.add("is-visible");
+  progressBar.style.width = "10%";
+  downloadNote.classList.remove("is-visible");
+  setHint("Preparing your download…");
+
+  try {
+    const height = parseInt(quality.replace("p", ""), 10);
+
+    const response = await fetch(
+      "https://downloader-lqej.onrender.com/api/download" +
+      "?url=" +
+      encodeURIComponent("https://www.youtube.com/watch?v=" + videoId) +
+      "&height=" +
+      height
+    );
+
+    if (!response.ok) {
+      let message = "Download failed.";
+
+      try {
+        const data = await response.json();
+        if (data.detail) message = data.detail;
+      } catch (_) {}
+
+      throw new Error(message);
+    }
+
+    progressBar.style.width = "50%";
+    setHint("Downloading video…");
+
+    const blob = await response.blob();
+
+    progressBar.style.width = "100%";
+
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = downloadUrl;
+    a.download = videoId + "-" + height + "p.mp4";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(downloadUrl);
+
+    setHint("Download started.");
+    downloadNote.innerHTML =
+      "<strong>Done!</strong> Your " + height + "p video is downloading.";
+    downloadNote.classList.add("is-visible");
+
+  } catch (err) {
+    console.error("Download error:", err);
+
+    setHint(err.message || "Download failed.", "error");
+
+    downloadNote.innerHTML =
+      "<strong>Download failed.</strong> " +
+      (err.message || "Something went wrong.");
+    downloadNote.classList.add("is-visible");
+
+  } finally {
+    setTimeout(() => {
+      progress.classList.remove("is-visible");
+      progressBar.style.width = "0%";
+    }, 500);
+
+    downloadBtn.disabled = false;
+    downloadBtn.textContent = "Download";
   }
-
-})();
+}
 </script>
 
 </body>
