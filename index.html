@@ -567,6 +567,7 @@ async function fetchVideoInfo(videoId, originalUrl) {
   // can be reviewed end-to-end.
   // ---------------------------------------------------------------------
 async function requestDownload(videoId, quality) {
+   alert("NEW DOWNLOAD CODE IS RUNNING");
   if (!videoId || !quality) return;
 
   downloadBtn.disabled = true;
