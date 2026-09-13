@@ -576,8 +576,15 @@ async function requestDownload(videoId, quality) {
   try {
     const height = parseInt(quality.label.replace("p", ""), 10);
 
-    const url = new URL("https://downloader-lqej.onrender.com/api/download");
-    url.searchParams.set("url", "https://www.youtube.com/watch?v=" + videoId);
+    const url = new URL(
+      "https://downloader-lqej.onrender.com/api/download"
+    );
+
+    url.searchParams.set(
+      "url",
+      "https://www.youtube.com/watch?v=" + videoId
+    );
+
     url.searchParams.set("height", height);
 
     const response = await fetch(url.toString());
@@ -612,14 +619,18 @@ async function requestDownload(videoId, quality) {
 
   } catch (err) {
     console.error("Download error:", err);
-    setHint(err.message || "Download failed.", "error");
+
+    setHint(
+      err.message || "Download failed.",
+      "error"
+    );
+
     downloadBtn.textContent = "Download";
 
   } finally {
     downloadBtn.disabled = false;
   }
 }
-
 
 </script>
 
