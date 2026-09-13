@@ -469,32 +469,44 @@
     downloadBtn.textContent = "Download " + label;
   }
 
-  async function fetchVideoInfo(videoId, originalUrl) {
-    // Public oEmbed endpoint — this only returns title/author/thumbnail
-    // metadata that YouTube exposes for embedding purposes. It does not
-    // fetch or expose any actual video/audio stream.
-    const oembedUrl = "https://www.youtube.com/oembed?url=" +
-      encodeURIComponent(originalUrl) + "&format=json";
+ 
+async function fetchVideoInfo(videoId, originalUrl) {
 
-    try {
-      const res = await fetch(oembedUrl);
-      if (!res.ok) throw new Error("oEmbed request failed");
-      const data = await res.json();
-      return {
-        title: data.title || "Untitled video",
-        author: data.author_name || "Unknown channel",
-        thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
-      };
-    } catch (err) {
-      // CORS or network restrictions can block the request from a static
-      // page — fall back to the public thumbnail endpoint only.
-      return {
-        title: "Video ready",
-        author: "Title unavailable — connect a backend to fetch metadata server-side",
-        thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
-      };
+  console.time("FETCH_VIDEO_INFO");
+
+  const oembedUrl = "https://www.youtube.com/oembed?url=" +
+    encodeURIComponent(originalUrl) + "&format=json";
+
+  try {
+    const res = await fetch(oembedUrl);
+
+    if (!res.ok) {
+      throw new Error("oEmbed request failed");
     }
+
+    const data = await res.json();
+
+    console.timeEnd("FETCH_VIDEO_INFO");
+
+    return {
+      title: data.title || "Untitled video",
+      author: data.author_name || "Unknown channel",
+      thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
+    };
+
+  } catch (err) {
+
+    console.timeEnd("FETCH_VIDEO_INFO");
+
+    return {
+      title: "Video ready",
+      author: "Title unavailable — connect a backend to fetch metadata server-side",
+      thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
+    };
   }
+}
+
+
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
