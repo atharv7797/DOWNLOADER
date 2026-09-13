@@ -470,19 +470,18 @@
   }
 
  
- async function fetchVideoInfo(videoId, originalUrl) {
+async function fetchVideoInfo(videoId, originalUrl) {
+
   console.time("FETCH_VIDEO_INFO");
 
-  const oembedUrl =
-    "https://www.youtube.com/oembed?url=" +
-    encodeURIComponent(originalUrl) +
-    "&format=json";
+  const oembedUrl = "https://www.youtube.com/oembed?url=" +
+    encodeURIComponent(originalUrl) + "&format=json";
 
   try {
     const res = await fetch(oembedUrl);
 
     if (!res.ok) {
-      throw new Error("YouTube could not fetch this video.");
+      throw new Error("oEmbed request failed");
     }
 
     const data = await res.json();
@@ -492,85 +491,110 @@
     return {
       title: data.title || "Untitled video",
       author: data.author_name || "Unknown channel",
-      thumbnail:
-        "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg"
+      thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
     };
 
   } catch (err) {
-    console.timeEnd("FETCH_VIDEO_INFO");
-    console.error("Fetch error:", err);
 
-    throw new Error(
-      "Could not fetch this YouTube video. Check the URL and try again."
-    );
+    console.timeEnd("FETCH_VIDEO_INFO");
+
+    return {
+      title: "Video ready",
+      author: "Title unavailable — connect a backend to fetch metadata server-side",
+      thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
+    };
   }
 }
-async function requestDownload(videoId, quality) {
-  if (!videoId || !quality) return;
 
-  downloadBtn.disabled = true;
-  downloadBtn.textContent = "Preparing…";
-  setHint("Preparing your download…");
 
-  try {
-    const height = parseInt(quality.label.replace("p", ""), 10);
 
-    const url = new URL(
-      "https://downloader-lqej.onrender.com/api/download"
-    );
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const raw = urlInput.value;
+    const videoId = extractVideoId(raw);
 
-    url.searchParams.set(
-      "url",
-      "https://www.youtube.com/watch?v=" + videoId
-    );
+    videoCard.classList.remove("is-visible");
+    qualitySection.classList.remove("is-visible");
+    downloadNote.classList.remove("is-visible");
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = "Download";
+    selectedQuality = null;
 
-    url.searchParams.set("height", height);
-
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      let message = "Download failed.";
-
-      try {
-        const data = await response.json();
-        if (data.detail) message = data.detail;
-      } catch (_) {}
-
-      throw new Error(message);
+    if (!videoId) {
+      setHint("That doesn't look like a YouTube link yet.", "error");
+      return;
     }
 
-    const blob = await response.blob();
+    setHint("Fetching video details…");
+    fetchBtn.disabled = true;
+    currentVideoId = videoId;
 
-    const downloadUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const info = await fetchVideoInfo(videoId, raw.trim());
 
-    a.href = downloadUrl;
-    a.download = videoId + "-" + height + "p.mp4";
+    videoThumb.src = info.thumbnail;
+    videoThumb.alt = info.title;
+    videoTitle.textContent = info.title;
+    videoSub.textContent = info.author;
 
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    videoCard.classList.add("is-visible");
+    renderQualityGrid();
+    qualitySection.classList.add("is-visible");
+    setHint("Found it — choose a quality below.");
+    fetchBtn.disabled = false;
+  });
 
-    URL.revokeObjectURL(downloadUrl);
+  downloadBtn.addEventListener("click", () => {
+    if (!selectedQuality || !currentVideoId) return;
+    requestDownload(currentVideoId, selectedQuality);
+  });
 
-    setHint("Download started.");
-    downloadBtn.textContent = "Download";
+  // ---------------------------------------------------------------------
+  // Hook point for a real backend.
+  //
+  // Actually extracting a media stream from YouTube has to happen
+  // server-side (e.g. yt-dlp + ffmpeg behind your own API), since a
+  // browser can't legally or technically pull it directly. Point this
+  // function at your endpoint, something like:
+  //
+  //   const res = await fetch(`/api/download?id=${videoId}&quality=${quality}`);
+  //   const blob = await res.blob();
+  //   const a = document.createElement("a");
+  //   a.href = URL.createObjectURL(blob);
+  //   a.download = `${videoId}-${quality}.mp4`;
+  //   a.click();
+  //
+  // Until that's wired up, this simulates the download flow so the UI
+  // can be reviewed end-to-end.
+  // ---------------------------------------------------------------------
+  function requestDownload(videoId, quality) {
+    downloadBtn.disabled = true;
+    progress.classList.add("is-visible");
+    downloadNote.classList.remove("is-visible");
+    progressBar.style.width = "0%";
 
-  } catch (err) {
-    console.error("Download error:", err);
-
-    setHint(
-      err.message || "Download failed.",
-      "error"
-    );
-
-    downloadBtn.textContent = "Download";
-
-  } finally {
-    downloadBtn.disabled = false;
+    let pct = 0;
+    const timer = setInterval(() => {
+      pct += Math.random() * 18;
+      if (pct >= 100) {
+        pct = 100;
+        clearInterval(timer);
+        progressBar.style.width = "100%";
+        setTimeout(() => {
+          progress.classList.remove("is-visible");
+          downloadBtn.disabled = false;
+          downloadNote.innerHTML =
+            "<strong>No backend connected yet.</strong> This demo shows the flow only — " +
+            "wire <code>requestDownload()</code> up to a server endpoint that extracts the " +
+            quality + " file for <code>" + videoId + "</code> to enable real downloads.";
+          downloadNote.classList.add("is-visible");
+        }, 250);
+      } else {
+        progressBar.style.width = pct + "%";
+      }
+    }, 180);
   }
-}
 
+})();
 </script>
 
 </body>
