@@ -470,18 +470,19 @@
   }
 
  
-async function fetchVideoInfo(videoId, originalUrl) {
-
+ async function fetchVideoInfo(videoId, originalUrl) {
   console.time("FETCH_VIDEO_INFO");
 
-  const oembedUrl = "https://www.youtube.com/oembed?url=" +
-    encodeURIComponent(originalUrl) + "&format=json";
+  const oembedUrl =
+    "https://www.youtube.com/oembed?url=" +
+    encodeURIComponent(originalUrl) +
+    "&format=json";
 
   try {
     const res = await fetch(oembedUrl);
 
     if (!res.ok) {
-      throw new Error("oEmbed request failed");
+      throw new Error("YouTube could not fetch this video.");
     }
 
     const data = await res.json();
@@ -491,63 +492,19 @@ async function fetchVideoInfo(videoId, originalUrl) {
     return {
       title: data.title || "Untitled video",
       author: data.author_name || "Unknown channel",
-      thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
+      thumbnail:
+        "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg"
     };
 
   } catch (err) {
-
     console.timeEnd("FETCH_VIDEO_INFO");
+    console.error("Fetch error:", err);
 
-    return {
-      title: "Video ready",
-      author: "Title unavailable — connect a backend to fetch metadata server-side",
-      thumbnail: "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg",
-    };
+    throw new Error(
+      "Could not fetch this YouTube video. Check the URL and try again."
+    );
   }
 }
-
-
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const raw = urlInput.value;
-    const videoId = extractVideoId(raw);
-
-    videoCard.classList.remove("is-visible");
-    qualitySection.classList.remove("is-visible");
-    downloadNote.classList.remove("is-visible");
-    downloadBtn.disabled = true;
-    downloadBtn.textContent = "Download";
-    selectedQuality = null;
-
-    if (!videoId) {
-      setHint("That doesn't look like a YouTube link yet.", "error");
-      return;
-    }
-
-    setHint("Fetching video details…");
-    fetchBtn.disabled = true;
-    currentVideoId = videoId;
-
-    const info = await fetchVideoInfo(videoId, raw.trim());
-
-    videoThumb.src = info.thumbnail;
-    videoThumb.alt = info.title;
-    videoTitle.textContent = info.title;
-    videoSub.textContent = info.author;
-
-    videoCard.classList.add("is-visible");
-    renderQualityGrid();
-    qualitySection.classList.add("is-visible");
-    setHint("Found it — choose a quality below.");
-    fetchBtn.disabled = false;
-  });
-
-  downloadBtn.addEventListener("click", () => {
-    if (!selectedQuality || !currentVideoId) return;
-    requestDownload(currentVideoId, selectedQuality);
-  });
-
 async function requestDownload(videoId, quality) {
   if (!videoId || !quality) return;
 
