@@ -415,9 +415,14 @@
   let currentUrl = null;
   let currentVideoId = null;
 
-  function looksLikeYouTubeUrl(raw) {
+  function normalizeUrl(raw) {
+    const trimmed = raw.trim();
+    return /^https?:\/\//i.test(trimmed) ? trimmed : "https://" + trimmed;
+  }
+
+  function looksLikeYouTubeUrl(normalized) {
     try {
-      const url = new URL(raw.trim());
+      const url = new URL(normalized);
       const host = url.hostname.replace(/^www\./, "");
       return host === "youtu.be" || host.endsWith("youtube.com");
     } catch (e) {
@@ -494,6 +499,7 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const raw = urlInput.value.trim();
+    const normalized = raw ? normalizeUrl(raw) : "";
 
     videoCard.classList.remove("is-visible");
     qualitySection.classList.remove("is-visible");
@@ -504,7 +510,7 @@
     currentUrl = null;
     currentVideoId = null;
 
-    if (!raw || !looksLikeYouTubeUrl(raw)) {
+    if (!raw || !looksLikeYouTubeUrl(normalized)) {
       setHint("That doesn't look like a YouTube link yet.", "error");
       return;
     }
@@ -513,9 +519,9 @@
     fetchBtn.disabled = true;
 
     try {
-      const info = await fetchVideoInfo(raw);
+      const info = await fetchVideoInfo(normalized);
 
-      currentUrl = raw;
+      currentUrl = normalized;
       currentVideoId = info.id;
 
       videoThumb.src = info.thumbnail || "";
