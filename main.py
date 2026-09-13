@@ -41,6 +41,11 @@ def _base_ydl_opts() -> dict:
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android_vr", "web"]
+            }
+        },
     }
  
  
